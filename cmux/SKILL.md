@@ -22,12 +22,12 @@ Use cmux to orchestrate work across isolated terminal workspaces. Each agent run
 cmux ping  # → PONG
 
 # Create workspace, send command, read output
-cmux new-workspace                                    # → OK <uuid>
-cmux send --workspace workspace:3 'echo hello'
-cmux send-key --workspace workspace:3 enter
+WS_ID=$(cmux new-workspace | awk '{print $2}')       # capture workspace ref
+cmux send --workspace "$WS_ID" 'echo hello'
+cmux send-key --workspace "$WS_ID" enter
 sleep 1
-cmux read-screen --workspace workspace:3 --lines 5   # → last 5 lines
-cmux close-workspace --workspace workspace:3
+cmux read-screen --workspace "$WS_ID" --lines 5      # → last 5 lines
+cmux close-workspace --workspace "$WS_ID"
 ```
 
 ## Agentic workflow patterns
@@ -37,7 +37,7 @@ cmux close-workspace --workspace workspace:3
 ```bash
 # Create workspace and launch Claude Code
 WS_ID=$(cmux new-workspace | awk '{print $2}')
-cmux send --workspace "$WS_ID" "claude -p \"$(cat .dispatch/prompt.md)\" --output-format json --allowedTools 'Read,Glob,Grep' --max-turns 10 --no-session-persistence | jq -r '.result' > .dispatch/output.md"
+cmux send --workspace "$WS_ID" 'claude -p "$(cat .dispatch/prompt.md)" --output-format json --allowedTools "Read,Glob,Grep" --max-turns 10 --no-session-persistence | jq -r ".result" > .dispatch/output.md'
 cmux send-key --workspace "$WS_ID" enter
 ```
 
@@ -72,10 +72,10 @@ cmux read-screen --workspace "$WS_ID" --scrollback  # full scrollback
 ### Pattern 4: Signal-based synchronization
 
 ```bash
-# Agent signals when done
-cmux wait-for --signal task-done --timeout 300  # blocks until signal or 300s
+# Wait until the 'task-done' signal is observed (blocks until signal or 300s)
+cmux wait-for task-done --timeout 300
 
-# From agent workspace (or hook):
+# From agent workspace (or hook), emit the signal:
 cmux wait-for --signal task-done
 ```
 

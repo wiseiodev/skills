@@ -8,7 +8,7 @@
 | `--window WINDOW` | Target window |
 | `--password PASSWORD` | Socket auth password |
 | `--json` | JSON output (supported on some commands) |
-| `--id-format refs\|uuids\|both` | Output format for IDs (default: refs) |
+| `--id-format refs|uuids|both` | Output format for IDs (default: refs) |
 | `--version` | Show version |
 
 ## Ref format
