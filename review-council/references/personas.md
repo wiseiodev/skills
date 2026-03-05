@@ -18,6 +18,8 @@ Select a persona based on what's being reviewed. All council members use the sam
 
 **Use for:** system designs, implementation plans, architecture specs, ADRs, infrastructure changes
 
+**Code principles groups:** architecture.md, design.md, resilience.md, meta.md
+
 ---
 
 ## Product Manager
@@ -35,6 +37,8 @@ Select a persona based on what's being reviewed. All council members use the sam
 - Competitive context — how does this compare to alternatives?
 
 **Use for:** PRDs, feature specs, user stories, roadmap items, product proposals
+
+**Code principles groups:** (none — product focus, not code principles)
 
 ---
 
@@ -55,6 +59,8 @@ Select a persona based on what's being reviewed. All council members use the sam
 
 **Use for:** code reviews, PR diffs, implementation quality checks, refactoring plans
 
+**Code principles groups:** solid.md, simplicity.md, design.md, testing.md, api-design.md, react.md
+
 ---
 
 ## QA Lead
@@ -72,6 +78,8 @@ Select a persona based on what's being reviewed. All council members use the sam
 - Load and stress scenarios — what happens at 10x traffic?
 
 **Use for:** test plans, deployment plans, migration scripts, reliability reviews
+
+**Code principles groups:** testing.md, resilience.md, api-design.md
 
 ---
 

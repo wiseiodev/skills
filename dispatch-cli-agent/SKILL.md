@@ -37,7 +37,7 @@ Read `references/<cli>.md` for the target CLI to get exact flags. Each reference
 For **single dispatch**:
 ```bash
 # Bash tool with run_in_background: true
-claude -p "$(cat .dispatch/<file>.md)" \
+cat .dispatch/<file>.md | claude -p - \
   --output-format json \
   --allowedTools "Read,Glob,Grep" \
   --max-turns 5 \
@@ -49,21 +49,21 @@ For **parallel fan-out**, launch multiple Bash calls in a single message (all wi
 
 ```bash
 # Bash 1 — Claude Code
-claude -p "$(cat .dispatch/prompt.md)" --output-format json \
+cat .dispatch/prompt.md | claude -p - --output-format json \
   --allowedTools "Read,Glob,Grep" --no-session-persistence 2>/dev/null \
   | jq -r '.result' > .dispatch/output-claude.md
 
 # Bash 2 — Codex CLI
-codex exec "$(cat .dispatch/prompt.md)" --json --ephemeral 2>/dev/null \
+cat .dispatch/prompt.md | codex exec - --json --ephemeral 2>/dev/null \
   | grep '"type":"item.completed"' \
   | jq -rs '[.[].item.text] | join("\n")' > .dispatch/output-codex.md
 
 # Bash 3 — Gemini CLI (use plain text, --output-format json may not produce stdout)
-gemini -p "$(cat .dispatch/prompt.md)" 2>/dev/null \
+cat .dispatch/prompt.md | gemini -p - 2>/dev/null \
   > .dispatch/output-gemini.md
 
 # Bash 4 — Copilot CLI
-copilot -p "$(cat .dispatch/prompt.md)" -s --no-ask-user --no-custom-instructions 2>/dev/null \
+cat .dispatch/prompt.md | copilot -p - -s --no-ask-user --no-custom-instructions 2>/dev/null \
   > .dispatch/output-copilot.md
 ```
 
@@ -106,4 +106,4 @@ copilot -p "prompt" -s --share .dispatch/output-copilot.md
 - Set `--max-budget-usd` (Claude Code) for cost control
 - Use `--model` to select cheaper models for review tasks
 - Prompt files in `.dispatch/` can be reused — pipe the same file to multiple CLIs
-- Add `.dispatch/` to `.gitignore`
+- Ensure `.dispatch/` is ignored (e.g., add it to a `.gitignore` file or `.git/info/exclude`)

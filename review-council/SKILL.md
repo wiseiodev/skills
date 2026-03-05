@@ -34,6 +34,8 @@ Skip unavailable CLIs. Warn the user. Minimum 2 council members required.
 
 ## Step 3: Write review prompt
 
+**Enrich with code principles:** If the `code-principles` skill is installed (`~/.claude/skills/code-principles/`), read the reference files relevant to the persona (see personas.md for mapping) and extract the "Review question" from each principle. Append these as a "Code Principles" subsection under Review Criteria.
+
 Write to `.dispatch/council-<YYYY-MM-DDTHH-MM-SS>.md`:
 
 ```markdown
@@ -48,6 +50,9 @@ Read and review the following file: `<absolute-path-to-document>`
 ## Review Criteria
 Evaluate for: completeness, logical flaws, missing ideas, DRY violations,
 edge cases, unstated assumptions, and anything that could cause problems.
+
+### Code Principles
+[If code-principles skill is available, insert review questions from relevant principle groups here]
 
 ## Output Format
 Structure your response exactly as:
@@ -74,7 +79,7 @@ Structure your response exactly as:
 
 Launch all CLI commands in a **single message** with multiple Bash tool calls.
 
-For detailed CLI flags, read `~/.claude/skills/dispatch-cli-agent/references/<cli>.md`.
+For detailed CLI flags, read the reference files in `~/.claude/skills/dispatch-cli-agent/references/` (e.g., `claude-code.md`, `codex-cli.md`, `gemini-cli.md`, `copilot-cli.md`).
 
 ### Background Bash commands
 
@@ -82,7 +87,7 @@ Launch all in parallel (single message, multiple Bash calls, all with `run_in_ba
 
 **Claude Code:**
 ```bash
-claude -p "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | claude -p - \
   --output-format json \
   --allowedTools "Read,Glob,Grep" \
   --max-turns 10 \
@@ -92,7 +97,7 @@ claude -p "$(cat <PROMPT_FILE>)" \
 
 **Codex CLI:**
 ```bash
-codex exec "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | codex exec - \
   --json --ephemeral 2>/dev/null \
   | grep '"type":"item.completed"' \
   | jq -rs '[.[].item.text] | join("\n")' > .dispatch/review-codex.md
@@ -100,16 +105,16 @@ codex exec "$(cat <PROMPT_FILE>)" \
 
 **Gemini CLI:**
 ```bash
-gemini -p "$(cat <PROMPT_FILE>)" 2>/dev/null \
+cat <PROMPT_FILE> | gemini -p - 2>/dev/null \
   > .dispatch/review-gemini.md
 ```
 Note: Gemini `--output-format json` may not produce stdout. Use plain text output instead.
 
 **Copilot CLI (optional):**
 ```bash
-copilot -p "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | copilot -p - \
   -s --no-ask-user --no-custom-instructions \
-  --deny-tool "shell(rm *)" --deny-tool "shell(git push*)" 2>/dev/null \
+  --deny-tool "Bash(rm *)" --deny-tool "Bash(git push*)" 2>/dev/null \
   > .dispatch/review-copilot.md
 ```
 
@@ -132,8 +137,9 @@ When all background tasks complete, compare their reviews:
 
 1. **Deduplicate** — merge identical or overlapping feedback
 2. **Prioritize** — rank by severity (critical → minor → suggestion)
-3. **Revise** — apply changes directly to the original document
-4. **Log** — write synthesis summary to `.dispatch/council-synthesis-<timestamp>.md`:
+3. **Cross-check against code principles** — if code-principles skill is available, verify synthesis addresses principle violations flagged by council members. Tag each applied revision with the principle it addresses (e.g., "Applied: SRP violation in tool registration")
+4. **Revise** — apply changes directly to the original document
+5. **Log** — write synthesis summary to `.dispatch/council-synthesis-<timestamp>.md`:
    - Which feedback items were applied
    - Which were skipped and why
    - Variance assessment (low/high)
