@@ -23,3 +23,15 @@ npx skills add wiseiodev/skills/graphite
 ```bash
 npx skills add wiseiodev/skills/gt
 ```
+
+### dispatch-cli-agent
+
+```bash
+npx skills add wiseiodev/skills/dispatch-cli-agent
+```
+
+### review-council
+
+```bash
+npx skills add wiseiodev/skills/review-council
+```
