@@ -34,6 +34,8 @@ Skip unavailable CLIs. Warn the user. Minimum 2 council members required.
 
 ## Step 3: Write review prompt
 
+**Enrich with code principles:** If the `code-principles` skill is installed (`~/.claude/skills/code-principles/`), read the reference files relevant to the persona (see personas.md for mapping) and extract the "Review question" from each principle. Append these as a "Code Principles" subsection under Review Criteria.
+
 Write to `.dispatch/council-<YYYY-MM-DDTHH-MM-SS>.md`:
 
 ```markdown
@@ -48,6 +50,9 @@ Read and review the following file: `<absolute-path-to-document>`
 ## Review Criteria
 Evaluate for: completeness, logical flaws, missing ideas, DRY violations,
 edge cases, unstated assumptions, and anything that could cause problems.
+
+### Code Principles
+[If code-principles skill is available, insert review questions from relevant principle groups here]
 
 ## Output Format
 Structure your response exactly as:
@@ -117,7 +122,7 @@ Replace `<PROMPT_FILE>` with the exact path from Step 3. Read the output files a
 
 ## Step 5: Collect and assess variance
 
-When all background tasks complete, compare their reviews:
+When all sub-agents return, compare their reviews:
 
 **Low variance** — council broadly agrees on the same issues and direction. Proceed to synthesis.
 
@@ -132,8 +137,9 @@ When all background tasks complete, compare their reviews:
 
 1. **Deduplicate** — merge identical or overlapping feedback
 2. **Prioritize** — rank by severity (critical → minor → suggestion)
-3. **Revise** — apply changes directly to the original document
-4. **Log** — write synthesis summary to `.dispatch/council-synthesis-<timestamp>.md`:
+3. **Cross-check against code principles** — if code-principles skill is available, verify synthesis addresses principle violations flagged by council members. Tag each applied revision with the principle it addresses (e.g., "Applied: SRP violation in tool registration")
+4. **Revise** — apply changes directly to the original document
+5. **Log** — write synthesis summary to `.dispatch/council-synthesis-<timestamp>.md`:
    - Which feedback items were applied
    - Which were skipped and why
    - Variance assessment (low/high)
