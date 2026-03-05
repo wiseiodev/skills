@@ -1,6 +1,6 @@
 ---
 name: dispatch-cli-agent
-description: Dispatch work to an external CLI agent (Claude Code, Codex CLI, Gemini CLI, or GitHub Copilot CLI) by writing a prompt and launching the agent via a sub-agent. Use when orchestrating multi-agent workflows, sending work for external review, parallel task fan-out, or the "review council" pattern where multiple agents review a plan in parallel. Triggers on words like "dispatch", "fan-out", "review council", "send to agent", "launch agent", or when orchestrating parallel CLI agent work.
+description: Dispatch work to an external CLI agent (Claude Code, Codex CLI, Gemini CLI, or GitHub Copilot CLI) by writing a prompt and launching the agent via background Bash tasks. Use when orchestrating multi-agent workflows, sending work for external review, parallel task fan-out, or the "review council" pattern where multiple agents review a plan in parallel. Triggers on words like "dispatch", "fan-out", "review council", "send to agent", "launch agent", or when orchestrating parallel CLI agent work.
 ---
 
 Dispatch prompts to external CLI agents and collect results.
@@ -11,7 +11,7 @@ Dispatch prompts to external CLI agents and collect results.
 |-----|---------|--------|-----------|
 | Claude Code | `claude -p "prompt" --output-format json` | JSON (`result`, `session_id`, `usage`) | [claude-code.md](references/claude-code.md) |
 | Codex CLI | `codex exec "prompt" --json` | JSONL events | [codex-cli.md](references/codex-cli.md) |
-| Gemini CLI | `gemini -p "prompt" --output-format json` | JSON | [gemini-cli.md](references/gemini-cli.md) |
+| Gemini CLI | `gemini -p "prompt"` | Plain text (recommended; `--output-format json` may not print to stdout) | [gemini-cli.md](references/gemini-cli.md) |
 | Copilot CLI | `copilot -p "prompt" -s` | Plain text (silent mode) | [copilot-cli.md](references/copilot-cli.md) |
 
 ## Dispatch Workflow
@@ -63,7 +63,7 @@ gemini -p "$(cat .dispatch/prompt.md)" 2>/dev/null \
   > .dispatch/output-gemini.md
 
 # Bash 4 — Copilot CLI
-copilot -p "$(cat .dispatch/prompt.md)" -s --no-ask-user 2>/dev/null \
+copilot -p "$(cat .dispatch/prompt.md)" -s --no-ask-user --no-custom-instructions 2>/dev/null \
   > .dispatch/output-copilot.md
 ```
 

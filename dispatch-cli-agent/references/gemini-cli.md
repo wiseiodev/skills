@@ -37,3 +37,4 @@ cat prompt.md | gemini -p "Review this plan for completeness and flaws" \
 - No dedicated system-prompt flag; use stdin pipe for custom context
 - Auth via Google Cloud credentials or API key
 - `--checkpointing` available for long-running tasks
+- `--output-format json` may not emit responses to stdout in all environments; prefer plain text output unless your integration explicitly handles this behavior

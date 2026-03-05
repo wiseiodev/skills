@@ -117,7 +117,7 @@ Replace `<PROMPT_FILE>` with the exact path from Step 3. Read the output files a
 
 ## Step 5: Collect and assess variance
 
-When all sub-agents return, compare their reviews:
+When all background tasks complete, compare their reviews:
 
 **Low variance** — council broadly agrees on the same issues and direction. Proceed to synthesis.
 
