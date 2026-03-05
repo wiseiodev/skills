@@ -79,7 +79,7 @@ Structure your response exactly as:
 
 Launch all CLI commands in a **single message** with multiple Bash tool calls.
 
-For detailed CLI flags, read `~/.claude/skills/dispatch-cli-agent/references/<cli>.md`.
+For detailed CLI flags, read the reference files in `~/.claude/skills/dispatch-cli-agent/references/` (e.g., `claude-code.md`, `codex-cli.md`, `gemini-cli.md`, `copilot-cli.md`).
 
 ### Background Bash commands
 
@@ -87,7 +87,7 @@ Launch all in parallel (single message, multiple Bash calls, all with `run_in_ba
 
 **Claude Code:**
 ```bash
-claude -p "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | claude -p - \
   --output-format json \
   --allowedTools "Read,Glob,Grep" \
   --max-turns 10 \
@@ -97,7 +97,7 @@ claude -p "$(cat <PROMPT_FILE>)" \
 
 **Codex CLI:**
 ```bash
-codex exec "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | codex exec - \
   --json --ephemeral 2>/dev/null \
   | grep '"type":"item.completed"' \
   | jq -rs '[.[].item.text] | join("\n")' > .dispatch/review-codex.md
@@ -105,16 +105,16 @@ codex exec "$(cat <PROMPT_FILE>)" \
 
 **Gemini CLI:**
 ```bash
-gemini -p "$(cat <PROMPT_FILE>)" 2>/dev/null \
+cat <PROMPT_FILE> | gemini -p - 2>/dev/null \
   > .dispatch/review-gemini.md
 ```
 Note: Gemini `--output-format json` may not produce stdout. Use plain text output instead.
 
 **Copilot CLI (optional):**
 ```bash
-copilot -p "$(cat <PROMPT_FILE>)" \
+cat <PROMPT_FILE> | copilot -p - \
   -s --no-ask-user --no-custom-instructions \
-  --deny-tool "shell(rm *)" --deny-tool "shell(git push*)" 2>/dev/null \
+  --deny-tool "Bash(rm *)" --deny-tool "Bash(git push*)" 2>/dev/null \
   > .dispatch/review-copilot.md
 ```
 
@@ -122,7 +122,7 @@ Replace `<PROMPT_FILE>` with the exact path from Step 3. Read the output files a
 
 ## Step 5: Collect and assess variance
 
-When all sub-agents return, compare their reviews:
+When all background tasks complete, compare their reviews:
 
 **Low variance** — council broadly agrees on the same issues and direction. Proceed to synthesis.
 

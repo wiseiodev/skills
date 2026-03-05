@@ -35,3 +35,15 @@ npx skills add wiseiodev/skills/dispatch-cli-agent
 ```bash
 npx skills add wiseiodev/skills/review-council
 ```
+
+### cmux
+
+```bash
+npx skills add wiseiodev/skills/cmux
+```
+
+### code-principles
+
+```bash
+npx skills add wiseiodev/skills/code-principles
+```
