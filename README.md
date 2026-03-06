@@ -47,3 +47,9 @@ npx skills add wiseiodev/skills/cmux
 ```bash
 npx skills add wiseiodev/skills/code-principles
 ```
+
+### work-log
+
+```bash
+npx skills add wiseiodev/skills/work-log
+```
