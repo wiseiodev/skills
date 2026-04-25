@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{WORK_ID}} — {{WORK_TITLE}}</title>
+    <style>
+      :root {
+        --bg: #0a0b0d;
+        --surface: #15181c;
+        --surface-2: #1b1f24;
+        --line: #24292f;
+        --line-soft: #1f2428;
+        --text: #e7eaee;
+        --text-dim: #8a9099;
+        --text-mute: #5b6470;
+        --accent: #1f7aed;
+        --accent-soft: #13335a;
+        --good: #4ade80;
+        --good-bg: #0f2e1e;
+        --warn: #fbbf24;
+        --warn-bg: #3a2b06;
+        --bad: #f87171;
+        --bad-bg: #3a1414;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); }
+      body {
+        color: var(--text);
+        font: 14px/1.55 "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: "cv11", "ss01", "tnum";
+      }
+      .page {
+        max-width: 960px;
+        margin: 40px auto;
+        padding: 40px 44px 32px;
+        background: var(--bg);
+      }
+      .page + .page { border-top: 1px solid var(--line-soft); margin-top: 0; }
+
+      /* Header */
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding-bottom: 20px;
+        margin-bottom: 28px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .eyebrow {
+        color: var(--text-mute);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+      }
+      .top h1 {
+        margin: 6px 0 0;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .top .meta {
+        text-align: right;
+        color: var(--text-dim);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .top .meta code { color: var(--text); }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line-soft);
+        border-radius: 14px;
+        padding: 20px 22px;
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        margin: 0 0 2px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.005em;
+      }
+      .card .sub {
+        color: var(--text-dim);
+        font-size: 12px;
+        margin-bottom: 14px;
+      }
+
+      /* Hero numbers (AR summary) */
+      .hero-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 6px;
+      }
+      .hero-cell {
+        background: var(--surface-2);
+        border: 1px solid var(--line-soft);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .hero-cell .k {
+        font-size: 10px;
+        color: var(--text-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+      }
+      .hero-cell .v {
+        margin-top: 4px;
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .hero-cell.good .v { color: var(--good); }
+      .hero-cell.warn .v { color: var(--warn); }
+      .hero-cell.bad  .v { color: var(--bad); }
+
+      /* Lists */
+      ul, ol { margin: 0; padding-left: 18px; }
+      li { margin-bottom: 4px; color: var(--text); }
+      li::marker { color: var(--text-mute); }
+
+      /* Code + pre */
+      code {
+        font: 12px ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+        background: var(--surface-2);
+        color: var(--text);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--line-soft);
+      }
+      pre {
+        font: 12px/1.55 ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+        background: var(--surface-2);
+        color: var(--text);
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--line-soft);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      /* Tables */
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line-soft);
+        vertical-align: top;
+      }
+      th {
+        color: var(--text-mute);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+      tr:last-child td { border-bottom: none; }
+      td code { font-size: 11.5px; padding: 1px 5px; }
+
+      /* Status pills */
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .pill::before {
+        content: "";
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .pill.good { color: var(--good); background: var(--good-bg); border-color: rgba(74,222,128,0.25); }
+      .pill.warn { color: var(--warn); background: var(--warn-bg); border-color: rgba(251,191,36,0.25); }
+      .pill.bad  { color: var(--bad);  background: var(--bad-bg);  border-color: rgba(248,113,113,0.25); }
+
+      /* Button-style accent (CTA lookalike, not clickable) */
+      .cta {
+        display: inline-block;
+        padding: 8px 14px;
+        background: var(--accent);
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+      }
+
+      /* Checklist */
+      .checklist { list-style: none; padding-left: 0; }
+      .checklist li {
+        padding: 6px 0 6px 26px;
+        position: relative;
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--text);
+      }
+      .checklist li:last-child { border-bottom: none; }
+      .checklist li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: var(--good-bg);
+        color: var(--good);
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(74,222,128,0.25);
+      }
+      .checklist li.todo { color: var(--text-dim); }
+      .checklist li.todo::before {
+        content: "";
+        background: var(--surface-2);
+        color: var(--text-mute);
+        border-color: var(--line);
+      }
+
+      /* Video frame */
+      .video-frame {
+        background: #000;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 8px;
+        text-align: center;
+      }
+      .video-frame video { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; background: #000; }
+      .video-caption {
+        margin-top: 10px;
+        color: var(--text-dim);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      /* Footer */
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-mute);
+        font-size: 11px;
+        margin-top: 24px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line-soft);
+      }
+
+      /* Print — keep dark, just remove chrome */
+      @media print {
+        body { background: #000; }
+        .page { margin: 0; max-width: 100%; padding: 24px 28px; page-break-after: always; }
+        .page:last-of-type { page-break-after: auto; }
+        .card { break-inside: avoid; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- PAGE 1 — SUMMARY -->
+    <section class="page">
+      <div class="top">
+        <div>
+          <div class="eyebrow">{{CONTEXT_LABEL}} · {{CONTEXT_ID}}</div>
+          <h1>{{WORK_ID}} · {{WORK_TITLE}}</h1>
+        </div>
+        <div class="meta">
+          <div>{{DATE}}</div>
+          <div><code>{{REPO}}</code></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What shipped</h2>
+        <div class="sub">Plain-language summary of what landed in this slice.</div>
+        <ul>
+          {{WHAT_SHIPPED_LIST}}
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Dependencies collected</h2>
+        <div class="sub">External values, credentials, or assets provided before implementation started.</div>
+        <table>
+          <thead><tr><th>Dependency</th><th>Value / status</th></tr></thead>
+          <tbody>
+            {{DEPENDENCIES_ROWS}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Files changed</h2>
+        <div class="sub">From <code>git diff --stat</code>.</div>
+        <pre>{{FILES_CHANGED}}</pre>
+      </div>
+
+      <div class="card">
+        <h2>Tests added</h2>
+        <div class="sub">New automated cases landing with this work item.</div>
+        <table>
+          <thead><tr><th>File</th><th>Cases</th><th>Framework</th></tr></thead>
+          <tbody>
+            {{TESTS_ROWS}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Quality gates</h2>
+        <div class="sub">All must pass with zero errors and zero warnings before commit.</div>
+        <table>
+          <thead><tr><th>Gate</th><th>Command</th><th>Status</th></tr></thead>
+          <tbody>
+            {{GATES_ROWS}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Adversarial review</h2>
+        <div class="sub">Two-reviewer debate, iterated until no critical or major findings remain.</div>
+        <div class="hero-grid">
+          <div class="hero-cell">
+            <div class="k">Iterations</div>
+            <div class="v">{{AR_ITERATIONS}}</div>
+          </div>
+          <div class="hero-cell bad">
+            <div class="k">Critical / Major</div>
+            <div class="v">{{AR_CRITICAL}} / {{AR_MAJOR}}</div>
+          </div>
+          <div class="hero-cell warn">
+            <div class="k">Minor</div>
+            <div class="v">{{AR_MINOR}}</div>
+          </div>
+          <div class="hero-cell good">
+            <div class="k">Nitpick</div>
+            <div class="v">{{AR_NITPICK}}</div>
+          </div>
+        </div>
+        <div style="margin-top: 14px;">
+          <ul>
+            {{AR_REMAINING_LIST}}
+          </ul>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span>thankyoumrnihill · work</span>
+        <span>Page 1 of 2</span>
+      </div>
+    </section>
+
+    <!-- PAGE 2 — PROOF OF WORK -->
+    <section class="page">
+      <div class="top">
+        <div>
+          <div class="eyebrow">Proof of work</div>
+          <h1>Self-QA · {{WORK_ID}}</h1>
+        </div>
+        <div class="meta">
+          <div>{{DATE}}</div>
+          <div><code>{{COMMIT_SHA_SHORT}}</code></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Self-QA recording</h2>
+        <div class="sub">Deterministic Playwright spec, re-runnable from the repo.</div>
+        <div class="video-frame">
+          <video controls preload="metadata" src="./{{WORK_ARTIFACT_ID}}-qa.webm"></video>
+        </div>
+        <p class="video-caption">{{QA_CAPTION}}</p>
+      </div>
+
+      <div class="card">
+        <h2>Scenarios covered</h2>
+        <div class="sub">Golden path and at least one edge case per acceptance criterion.</div>
+        <ul>
+          {{QA_SCENARIOS_LIST}}
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Acceptance criteria</h2>
+        <div class="sub">Every box ticked before the commit was made.</div>
+        <ul class="checklist">
+          {{ACCEPTANCE_LIST}}
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Commit</h2>
+        <div class="sub">Local only. Not pushed. Awaiting human inspection.</div>
+        <p style="margin: 0 0 10px;"><span class="cta">{{COMMIT_SHA_SHORT}}</span> <code style="margin-left: 8px;">{{COMMIT_SHA}}</code></p>
+        <pre>{{COMMIT_MESSAGE}}</pre>
+      </div>
+
+      <div class="foot">
+        <span>thankyoumrnihill · work</span>
+        <span>Page 2 of 2</span>
+      </div>
+    </section>
+
+  </body>
+</html>
