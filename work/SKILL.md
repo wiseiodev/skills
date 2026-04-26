@@ -1,6 +1,6 @@
 ---
 name: work
-description: Execute one implementation slice end-to-end from either (1) a PRD plus plan plus phase, where PRD and plan may be files or GitHub issues, (2) a GitHub PRD issue plus optional work issue, or (3) a Linear issue with its project/docs as PRD context. Use when the user says "/work", "do work", "do issue work", "do linear work", asks to implement a planned phase, asks to pick/execute the next GitHub slice from a PRD, or asks to complete a Linear issue. Always includes dependency intake, clarifications, feature branch, implementation, mandatory gates, adversarial review, Playwright self-QA or fallback evidence, local conventional commit, 2-page HTML report, and opening the report.
+description: Execute one implementation slice end-to-end from either (1) a PRD plus plan plus phase, where PRD and plan may be files or GitHub issues, (2) a GitHub PRD issue plus optional work issue, or (3) a Linear issue with its project/docs as PRD context. Use when the user says "/work", "do work", "do issue work", "do linear work", asks to implement a planned phase, asks to pick/execute the next GitHub slice from a PRD, or asks to complete a Linear issue. Always includes dependency intake, clarifications, feature branch, implementation, mandatory gates, adversarial review, Playwright self-QA or fallback evidence, local conventional commit, 2-page HTML report, opening the report, pushing the branch, and opening a Ready PR whose body mirrors the report.
 ---
 
 # Work
@@ -42,7 +42,8 @@ For files, read them directly. For GitHub issues, use `gh issue view <number> --
 
 Extract:
 
-- Work item id and title for branch names, QA files, report files, and commit footer.
+- Work item id and title for artifact ids, QA files, report files, and commit footer.
+- In Linear mode, the branch name must come from `linear issues branch <LINEAR-ID> --json`, using `data.branchName` exactly.
 - Acceptance criteria/checklist for the exact phase or issue.
 - Scope boundaries and sibling work to avoid.
 - Blockers, dependencies, ADRs, conventions, commands, and handoff notes.
@@ -55,7 +56,7 @@ Canonical artifact ids:
 - Linear mode: lowercase issue key, such as `ann-546`
 - Plan phase mode: `phase-<N>-<short-slug>`
 
-Use the same canonical id for branch names, `tests/qa/<artifact-id>.spec.ts`, `.reports/<artifact-id>-qa.webm`, `.reports/<artifact-id>-qa.md`, and `.reports/<artifact-id>.html`.
+Use the same canonical id for `tests/qa/<artifact-id>.spec.ts`, `.reports/<artifact-id>-qa.webm`, `.reports/<artifact-id>-qa.md`, and `.reports/<artifact-id>.html`. For branch names, use the canonical artifact id in GitHub and plan phase modes, but in Linear mode always use Linear's canonical branch name from `linear issues branch <LINEAR-ID> --json`.
 
 ## Auto-Pick GitHub Work Issue
 
@@ -88,8 +89,9 @@ Create a fresh feature branch before file changes. There is no main/default-bran
 1. Check `git status --porcelain`; stop if any dirty state exists. Ask the user whether to stash, commit separately, or abandon the workflow.
 2. Confirm the current/default branch and fetch remote refs.
 3. Inspect existing branch names and match local convention.
-4. Create a branch using the work id and slug, such as `feat/issue-742-auth-callbacks`, `feat/ann-546-schema-resources`, or `feat/phase-2-redis-cache`.
-5. Report the branch name before editing.
+4. For Linear mode, run `linear issues branch <LINEAR-ID> --json` and create a branch using exactly `data.branchName`, such as `feature/ann-546-schema-resources`. Do not hand-craft a `feat/` or `feature/` branch when Linear can provide one.
+5. For GitHub issue and plan phase modes, create a branch using the work id and slug, such as `feat/issue-742-auth-callbacks` or `feat/phase-2-redis-cache`.
+6. Report the branch name before editing.
 
 Never commit to `main` or the default branch. If the user asks to do that, stop and explain that `work` requires a feature branch.
 
@@ -139,7 +141,7 @@ If self-QA adds or changes committed files, such as QA specs or Playwright confi
 
 ## Stage And Adversarial Review
 
-Stage the exact intended commit with explicit paths before review. Include implementation files, tests, QA specs, config changes, and tracked documentation updates. Do not stage `.reports/` if it is gitignored.
+Stage the exact intended commit with explicit paths before review. Include implementation files, tests, QA specs, config changes, tracked documentation updates, and `.reports/` artifacts when the repository tracks work reports.
 
 Use the `adversarial-review` skill against the staged diff. Resolve every `critical` and `major` finding. If review fixes or QA changes alter the staged diff, restage and rerun adversarial review. Record remaining `minor` and `nitpick` findings in the report.
 
@@ -152,17 +154,17 @@ Commit only after gates, self-QA, and adversarial review all pass.
 1. Confirm the branch is not `main` or the default branch.
 2. Confirm the staged diff contains only files for this work item.
 3. Create one local Conventional Commit without `--no-verify`.
-4. Do not push, force-push, amend, or close the source issue.
+4. Do not amend or close the source issue. Push happens in the Open PR step.
 
 Commit footer:
 
 - GitHub issue mode: `Refs: #<work-issue>`
-- Linear mode: `Refs: <LINEAR-ID>`
+- Linear mode: `Completes <LINEAR-ID>` for the completed local work item. Use a Linear closing magic word, not `Refs`, so repo commitlint rules that require Linear completion footers pass.
 - Plan phase mode: `Refs: <prd-or-plan-reference> phase <N>`
 
 ## HTML Report
 
-Copy [`templates/report.html`](templates/report.html) to `.reports/<artifact-id>.html` and replace every placeholder. Add `.reports/` to `.gitignore` if missing.
+Copy [`templates/report.html`](templates/report.html) to `.reports/<artifact-id>.html` and replace every placeholder. Do not add `.reports/` to `.gitignore`; work reports are intended to be reviewable artifacts when the repository tracks them.
 
 Use the canonical artifact id for filenames. Use the original work id in visible report text.
 
@@ -189,6 +191,31 @@ Only for Linear mode, after commit and before report creation:
 2. Move the issue to the review-equivalent state, usually In Review.
 3. If no review-equivalent state exists, leave the issue out of Done, add a Linear comment explaining local completion and missing review state, and record that in the report.
 
+## Open PR
+
+After the HTML report is written, push the branch and open a Ready pull request whose body mirrors the report.
+
+1. Push with `git push -u origin <branch>`. If push fails for any reason (no remote, auth, branch protection, push rejected, etc.), stop and report the exact error verbatim — do not retry blindly, do not open a PR, do not delete or rewrite the local commit.
+2. Detect the base branch via `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`.
+3. Build the PR title from the work commit's Conventional Commit subject. For multi-commit work items, use the primary feature commit's subject, not the report/chore commit. The title must be entirely lowercase (matching the lowercase commit subject convention) and under 70 characters.
+4. Build the PR body by filling [`templates/pr-body.md`](templates/pr-body.md) with the same content as the HTML report's cards.
+5. Open with `gh pr create --base <default-branch> --title <title> --body-file <tmpfile>`. Always Ready — never pass `--draft`.
+6. Capture the PR URL for the final response.
+
+### Recording embeds in the PR body
+
+When `.reports/<artifact-id>-qa.webm` exists, include both an inline `<video>` tag (renders inline on github.com) and a plain markdown download link:
+
+```html
+<video src="https://raw.githubusercontent.com/<owner>/<repo>/<branch>/.reports/<artifact-id>-qa.webm" controls></video>
+```
+
+`[Download QA recording](.reports/<artifact-id>-qa.webm)`
+
+Resolve `<owner>/<repo>` from `gh repo view --json nameWithOwner --jq .nameWithOwner` and `<branch>` from the current branch.
+
+When the QA used the fallback (`.reports/<artifact-id>-qa.md`), link that file instead.
+
 ## Open Report
 
 Open the completed report as the final step:
@@ -197,14 +224,15 @@ Open the completed report as the final step:
 - Linux: `xdg-open .reports/<artifact-id>.html`
 - Windows: `start .reports/<artifact-id>.html`
 
-Final response: branch name, commit SHA, report path, QA artifact path, and a one-line summary. Remind the user that the commit is local and not pushed.
+Final response: branch name, commit SHA, report path, QA artifact path, PR URL, and a one-line summary. Note the PR is Ready — review and merge are the user's call.
 
 ## Hard Rules
 
 - Execute one work item only.
-- Never skip branch, gates, self-QA, staged adversarial review, commit, report, or report-open steps.
-- Never push or force-push.
+- Never skip branch, gates, self-QA, staged adversarial review, commit, report, push, PR creation, or report-open steps.
+- Never force-push.
 - Never bypass hooks.
+- Never open the PR as draft.
 - Never close GitHub or Linear issues.
 - Never move Linear issues to Done; use In Progress at start and the review-equivalent state after local completion.
-- Stop and ask when blockers, dirty worktree state, missing dependencies, or out-of-scope failing gates would make the work unsafe.
+- Stop and ask when blockers, dirty worktree state, missing dependencies, out-of-scope failing gates, or push failures would make the work unsafe.
