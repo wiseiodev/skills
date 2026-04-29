@@ -36,6 +36,14 @@ Fan work out to external CLI agents (Claude Code, Codex, Gemini, Copilot) via ba
 npx skills add wiseiodev/skills/dispatch-cli-agent
 ```
 
+### isolated-db-branches
+
+Per-feature Neon DB branch for each git branch in a Drizzle + Vercel project. Schema changes via `db:push` (no migration files on feature branches); migrations are auto-generated and validated post-merge against a throwaway prod clone, then applied to prod with deploy gated on success.
+
+```bash
+npx skills add wiseiodev/skills/isolated-db-branches
+```
+
 ### pr-comments
 
 Triage, fix, reply to, and resolve unresolved GitHub PR review threads. Adapts gates to the repo instead of assuming a fixed toolchain.
