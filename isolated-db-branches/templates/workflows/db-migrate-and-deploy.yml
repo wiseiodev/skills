@@ -1,0 +1,121 @@
+name: db-migrate-and-deploy
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      retry:
+        description: 'Retry the most recent migration without going through PR merge'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  issues: write
+  statuses: write
+
+concurrency:
+  group: db-migrate-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate-and-deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       contains(github.event.pull_request.labels.*.name, 'migration-ready'))
+    runs-on: ubuntu-latest
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Pull Vercel production env (DATABASE_URL etc.)
+        run: |
+          pnpm dlx --allow-build=esbuild vercel@52.0.0 env pull .env.local \
+            --environment=production --yes --token="$VERCEL_TOKEN"
+
+      - name: Run prod migration (3x retry on transient)
+        id: migrate
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm db:migrate; then
+              echo "migration_ok=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Attempt $attempt failed; retrying after backoff..."
+            sleep $((attempt * 10))
+          done
+          echo "migration_ok=false" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Apply hand-authored data migrations
+        if: steps.migrate.outputs.migration_ok == 'true'
+        run: |
+          if [ -d drizzle/data ]; then
+            for f in $(ls drizzle/data/*.sql 2>/dev/null | sort); do
+              echo "Applying $f"
+              psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 -f "$f"
+            done
+          fi
+
+      - name: Set status check green
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/statuses/$(git rev-parse HEAD)" \
+            -f state=success \
+            -f context=prod-migration-state \
+            -f description="Migration applied"
+
+      - name: Deploy to Vercel production
+        if: success()
+        run: |
+          pnpm dlx --allow-build=esbuild vercel@52.0.0 deploy --prod \
+            --token="$VERCEL_TOKEN" --yes
+
+      - name: Open failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.MIGRATION_BOT_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Prod migration failed at $(git rev-parse --short HEAD)" \
+            --label "migration-failed" \
+            --body "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Run \`pnpm db:migrate:retry\` after fixing the root cause."
+
+      - name: Set status check red
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/statuses/$(git rev-parse HEAD)" \
+            -f state=failure \
+            -f context=prod-migration-state \
+            -f description="Migration failed; merges blocked" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

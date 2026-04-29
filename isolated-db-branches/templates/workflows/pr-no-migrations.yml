@@ -1,0 +1,37 @@
+name: pr-lint-no-migrations
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  no-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Reject migration files in PR
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          # Adjust path glob if your migrations dir differs.
+          # drizzle/data/ is allowed (hand-authored data migrations).
+          OFFENDING=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" \
+            | grep -E '^drizzle/(?!data/)' \
+            | grep -E '\.(sql|json)$' || true)
+          if [ -n "$OFFENDING" ]; then
+            echo "::error::Feature branches must not add migration files. Migrations are auto-generated post-merge."
+            echo "Offending files:"
+            echo "$OFFENDING"
+            echo ""
+            echo "If you intended to add a hand-authored data migration, put it in drizzle/data/ via:"
+            echo "  pnpm db:custom <name>"
+            exit 1
+          fi

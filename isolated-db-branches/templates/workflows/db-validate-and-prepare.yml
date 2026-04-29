@@ -1,0 +1,126 @@
+name: db-validate-and-prepare
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Adjust if your schema entry lives elsewhere.
+      - 'src/db/schema.ts'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: db-validate-and-prepare
+  cancel-in-progress: false
+
+jobs:
+  validate-and-prepare:
+    runs-on: ubuntu-latest
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      NEON_PARENT_BRANCH: main
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MIGRATION_BOT_TOKEN }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create throwaway clone of prod
+        id: clone
+        run: |
+          CLONE_NAME="migration-validate-${GITHUB_SHA::12}"
+          neonctl branches create \
+            --project-id "$NEON_PROJECT_ID" \
+            --name "$CLONE_NAME" \
+            --parent "$NEON_PARENT_BRANCH" \
+            --output json > /tmp/clone.json
+          echo "clone_name=$CLONE_NAME" >> "$GITHUB_OUTPUT"
+          CLONE_URI=$(neonctl connection-string "$CLONE_NAME" --project-id "$NEON_PROJECT_ID")
+          echo "::add-mask::$CLONE_URI"
+          echo "clone_uri=$CLONE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Generate migration
+        env:
+          DATABASE_URL: ${{ steps.clone.outputs.clone_uri }}
+          DATABASE_URL_UNPOOLED: ${{ steps.clone.outputs.clone_uri }}
+        run: pnpm db:generate:ci
+
+      - name: Detect new migration
+        id: detect
+        run: |
+          if git diff --quiet drizzle/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply migration to clone
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          DATABASE_URL: ${{ steps.clone.outputs.clone_uri }}
+          DATABASE_URL_UNPOOLED: ${{ steps.clone.outputs.clone_uri }}
+        run: pnpm db:migrate
+
+      - name: Smoke check on clone
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          DATABASE_URL: ${{ steps.clone.outputs.clone_uri }}
+          DATABASE_URL_UNPOOLED: ${{ steps.clone.outputs.clone_uri }}
+        run: pnpm db:health
+
+      - name: Open auto-migration PR
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.MIGRATION_BOT_TOKEN }}
+        run: |
+          BRANCH="migrations/auto-${GITHUB_SHA::12}"
+          git config user.name "migration-bot"
+          git config user.email "migration-bot@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add drizzle/
+          git commit -m "chore(db): record migration [skip ci]" -m "Auto-generated post-merge from $GITHUB_SHA."
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(db): record migration ${GITHUB_SHA::12}" \
+            --body "Auto-generated migration validated against throwaway Neon clone. Auto-merged on label." \
+            --label "automated-migration" \
+            --label "migration-ready" \
+            --label "skip-copilot-review"
+          gh pr merge "$BRANCH" --auto --squash
+
+      - name: Delete throwaway clone
+        if: always() && steps.clone.outputs.clone_name != ''
+        run: |
+          neonctl branches delete "${{ steps.clone.outputs.clone_name }}" \
+            --project-id "$NEON_PROJECT_ID" || true
+
+      - name: Open failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.MIGRATION_BOT_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Migration validation failed for ${GITHUB_SHA::12}" \
+            --label "migration-failed" \
+            --body "Validate-and-prepare workflow failed. See run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

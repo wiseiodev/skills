@@ -1,0 +1,47 @@
+name: code-only-deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      # Adjust if your schema entry lives elsewhere.
+      - 'src/db/schema.ts'
+      - 'drizzle/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-only-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel production
+        run: |
+          pnpm dlx --allow-build=esbuild vercel@52.0.0 deploy --prod \
+            --token="$VERCEL_TOKEN" --yes
