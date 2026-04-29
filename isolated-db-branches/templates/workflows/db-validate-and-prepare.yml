@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install neonctl
+        run: npm install -g neonctl
+
       - name: Create throwaway clone of prod
         id: clone
         run: |
@@ -67,10 +70,11 @@ jobs:
       - name: Detect new migration
         id: detect
         run: |
-          if git diff --quiet drizzle/; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
+          # Use status --porcelain so newly generated (untracked) files are detected.
+          if [ -n "$(git status --porcelain -- drizzle/)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Apply migration to clone

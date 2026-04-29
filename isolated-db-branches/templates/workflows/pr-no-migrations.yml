@@ -24,7 +24,8 @@ jobs:
           # Adjust path glob if your migrations dir differs.
           # drizzle/data/ is allowed (hand-authored data migrations).
           OFFENDING=$(git diff --name-only --diff-filter=A "$BASE" "$HEAD" \
-            | grep -E '^drizzle/(?!data/)' \
+            | grep -E '^drizzle/' \
+            | grep -v '^drizzle/data/' \
             | grep -E '\.(sql|json)$' || true)
           if [ -n "$OFFENDING" ]; then
             echo "::error::Feature branches must not add migration files. Migrations are auto-generated post-merge."

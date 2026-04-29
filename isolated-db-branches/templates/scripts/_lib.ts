@@ -9,15 +9,6 @@ export function gitBranch(): string {
   }).trim();
 }
 
-export function gitBranchExists(name: string): boolean {
-  try {
-    execSync(`git show-ref --verify --quiet refs/heads/${name}`);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function neonProjectId(): string {
   const id = process.env.NEON_PROJECT_ID;
   if (!id) throw new Error('NEON_PROJECT_ID not set in env');
@@ -56,7 +47,7 @@ export function findNeonBranch(name: string): NeonBranch | undefined {
 export function getConnectionUri(branchName: string, pooled: boolean): string {
   const flags = pooled ? '--pooled' : '';
   return neonctl(
-    `connection-string ${branchName} --project-id ${neonProjectId()} ${flags}`,
+    `connection-string ${shellQuote(branchName)} --project-id ${neonProjectId()} ${flags}`,
   ).trim();
 }
 
@@ -109,17 +100,19 @@ export function vercelEnvSync(
     );
     return;
   }
+  const quotedBranch = shellQuote(gitBranchName);
+  const quotedToken = shellQuote(process.env.VERCEL_TOKEN);
   for (const [name, value] of Object.entries(vars)) {
     try {
       execSync(
-        `vercel env rm ${name} preview ${gitBranchName} --yes --token=${process.env.VERCEL_TOKEN}`,
+        `vercel env rm ${name} preview ${quotedBranch} --yes --token=${quotedToken}`,
         { stdio: 'pipe' },
       );
     } catch {
       // not present; fine
     }
     execSync(
-      `printf %s ${shellQuote(value)} | vercel env add ${name} preview ${shellQuote(gitBranchName)} --token=${process.env.VERCEL_TOKEN}`,
+      `printf %s ${shellQuote(value)} | vercel env add ${name} preview ${quotedBranch} --token=${quotedToken}`,
       { stdio: 'inherit', shell: '/bin/sh' },
     );
   }
@@ -127,10 +120,12 @@ export function vercelEnvSync(
 
 export function vercelEnvRemove(gitBranchName: string, names: string[]): void {
   if (!process.env.VERCEL_TOKEN) return;
+  const quotedBranch = shellQuote(gitBranchName);
+  const quotedToken = shellQuote(process.env.VERCEL_TOKEN);
   for (const name of names) {
     try {
       execSync(
-        `vercel env rm ${name} preview ${gitBranchName} --yes --token=${process.env.VERCEL_TOKEN}`,
+        `vercel env rm ${name} preview ${quotedBranch} --yes --token=${quotedToken}`,
         { stdio: 'pipe' },
       );
     } catch {

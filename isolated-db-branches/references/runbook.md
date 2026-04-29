@@ -41,8 +41,8 @@ pnpm db:migrate:retry
 This re-runs the prod migration step + deploy. On success:
 
 - Status check `prod-migration-state` flips green.
-- Migration issue closed automatically.
 - New PRs can merge again.
+- If the `migration-failed` issue is still open, close it manually.
 
 ## Migration succeeded on prod but `vercel deploy --prod` failed
 

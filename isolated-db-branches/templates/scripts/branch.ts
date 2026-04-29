@@ -3,7 +3,6 @@ import {
   findNeonBranch,
   getConnectionUri,
   gitBranch,
-  gitBranchExists,
   listGitHubBranches,
   listNeonBranches,
   neonctl,

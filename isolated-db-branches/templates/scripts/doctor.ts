@@ -1,12 +1,7 @@
 #!/usr/bin/env tsx
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import {
-  findNeonBranch,
-  gitBranch,
-  neonParentBranch,
-  neonProjectId,
-} from './_lib.ts';
+import { findNeonBranch, gitBranch, neonParentBranch } from './_lib.ts';
 
 type Check = { name: string; ok: boolean; detail?: string };
 
@@ -117,6 +112,7 @@ const requiredWorkflows = [
   '.github/workflows/db-migrate-and-deploy.yml',
   '.github/workflows/code-only-deploy.yml',
   '.github/workflows/cleanup-neon-branch.yml',
+  '.github/workflows/pr-no-migrations.yml',
 ];
 for (const path of requiredWorkflows) {
   checks.push({ name: `${path} present`, ok: existsSync(path) });

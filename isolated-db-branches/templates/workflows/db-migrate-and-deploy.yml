@@ -52,9 +52,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Pull Vercel production env (DATABASE_URL etc.)
+      - name: Pull Vercel production env
         run: |
-          pnpm dlx --allow-build=esbuild vercel@52.0.0 env pull .env.local \
+          pnpm dlx --allow-build=esbuild vercel@52.0.0 env pull .env \
             --environment=production --yes --token="$VERCEL_TOKEN"
 
       - name: Run prod migration (3x retry on transient)
@@ -73,16 +73,10 @@ jobs:
 
       - name: Apply hand-authored data migrations
         if: steps.migrate.outputs.migration_ok == 'true'
-        run: |
-          if [ -d drizzle/data ]; then
-            for f in $(ls drizzle/data/*.sql 2>/dev/null | sort); do
-              echo "Applying $f"
-              psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 -f "$f"
-            done
-          fi
+        run: pnpm tsx scripts/db/run-data-migrations.ts
 
-      - name: Set status check green
-        if: success()
+      - name: Set migration status check green
+        if: steps.migrate.outputs.migration_ok == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -92,13 +86,15 @@ jobs:
             -f description="Migration applied"
 
       - name: Deploy to Vercel production
-        if: success()
+        id: deploy
+        if: steps.migrate.outputs.migration_ok == 'true'
         run: |
           pnpm dlx --allow-build=esbuild vercel@52.0.0 deploy --prod \
             --token="$VERCEL_TOKEN" --yes
 
-      - name: Open failure issue
-        if: failure()
+      # Migration failure: flips status check red, blocks merges.
+      - name: Open migration-failed issue
+        if: steps.migrate.outputs.migration_ok != 'true'
         env:
           GH_TOKEN: ${{ secrets.MIGRATION_BOT_TOKEN }}
         run: |
@@ -109,8 +105,8 @@ jobs:
 
           Run \`pnpm db:migrate:retry\` after fixing the root cause."
 
-      - name: Set status check red
-        if: failure()
+      - name: Set migration status check red
+        if: steps.migrate.outputs.migration_ok != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,3 +115,15 @@ jobs:
             -f context=prod-migration-state \
             -f description="Migration failed; merges blocked" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      # Deploy failure (migration succeeded): does NOT flip prod-migration-state.
+      # Different label so the runbook can route operators correctly.
+      - name: Open deploy-failed issue
+        if: steps.migrate.outputs.migration_ok == 'true' && failure() && steps.deploy.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.MIGRATION_BOT_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Prod deploy failed at $(git rev-parse --short HEAD)" \
+            --label "deploy-failed" \
+            --body "Migration applied successfully but Vercel deploy failed. Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
