@@ -68,6 +68,14 @@ Send a plan/spec/PRD/ADR/code to 2+ AI agents in parallel. Synthesizes feedback,
 npx skills add wiseiodev/skills/review-council
 ```
 
+### ship
+
+Ship one Linear issue end-to-end: branch, repo-discovered gates, self-QA video/evidence, adversarial review, a per-issue decision log, and an HTML report plus PR body rendered from one validated JSON file. Opens a Ready PR and autonomously handles post-PR review comments.
+
+```bash
+npx skills add wiseiodev/skills/ship
+```
+
 ### work
 
 Execute one implementation slice end-to-end from a PRD+plan+phase, GitHub issue, or Linear issue. Includes intake, branch, gates, adversarial review, self-QA, commit, HTML report.

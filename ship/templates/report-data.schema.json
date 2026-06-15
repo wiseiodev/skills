@@ -1,0 +1,398 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.skills/ship/report-data.schema.json",
+  "title": "ship report data",
+  "description": "Data contract consumed by scripts/render-report.mjs to produce the HTML report and PR body.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "stats",
+    "prompt",
+    "tldr",
+    "why",
+    "fileTour",
+    "reviewFocus",
+    "testPlan",
+    "qualityGates",
+    "selfQa",
+    "acceptanceCriteria",
+    "adversarialReview",
+    "decisions",
+    "lessons",
+    "dependencies",
+    "rollout",
+    "commit"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workId",
+        "title",
+        "artifactId",
+        "repo",
+        "date",
+        "branch",
+        "baseBranch",
+        "author",
+        "contextLabel",
+        "contextId",
+        "prUrl"
+      ],
+      "properties": {
+        "workId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Visible Linear issue key, e.g. ENG-123."
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "artifactId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Lowercase artifact id, e.g. eng-123."
+        },
+        "repo": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string", "minLength": 1 },
+        "baseBranch": { "type": "string", "minLength": 1 },
+        "author": { "type": "string", "minLength": 1 },
+        "contextLabel": { "type": "string", "minLength": 1 },
+        "contextId": { "type": "string", "minLength": 1 },
+        "prUrl": { "type": "string", "description": "Empty string until a PR exists." }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fileCount", "additions", "deletions", "diffStat"],
+      "properties": {
+        "fileCount": { "type": "integer", "minimum": 0 },
+        "additions": { "type": "integer", "minimum": 0 },
+        "deletions": { "type": "integer", "minimum": 0 },
+        "diffStat": { "type": "string", "minLength": 1 }
+      }
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reviewer-oriented context for the report header."
+    },
+    "tldr": { "type": "string", "minLength": 1 },
+    "why": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["motivation", "before", "after"],
+      "properties": {
+        "motivation": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "before": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "after": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "fileTour": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "changeType",
+          "additions",
+          "deletions",
+          "explanation",
+          "snippet",
+          "snippetLanguage",
+          "open"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "changeType": { "type": "string", "enum": ["new", "mod", "del", "renamed"] },
+          "additions": { "type": "integer", "minimum": 0 },
+          "deletions": { "type": "integer", "minimum": 0 },
+          "explanation": { "type": "string", "minLength": 1 },
+          "snippet": {
+            "type": "string",
+            "description": "Optional code excerpt. Use an empty string when no snippet is helpful."
+          },
+          "snippetLanguage": {
+            "type": "string",
+            "description": "Optional language label. Use an empty string when no snippet is provided."
+          },
+          "open": {
+            "type": "boolean",
+            "description": "Whether the accordion starts open in the HTML report."
+          }
+        }
+      }
+    },
+    "reviewFocus": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "location", "rationale"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "location": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "testPlan": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "label", "status", "evidence"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["unit", "integration", "e2e", "manual", "build", "other"]
+          },
+          "label": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["done", "pending", "na"] },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "qualityGates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "command", "status", "evidence"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["passed", "failed", "skipped", "not_available"] },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "selfQa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tsxChanged",
+        "videoRequired",
+        "videoRequiredReason",
+        "fallbackApprovedByUser",
+        "mode",
+        "artifactPath",
+        "caption",
+        "scenarios"
+      ],
+      "properties": {
+        "tsxChanged": {
+          "type": "boolean",
+          "description": "True when any committed .tsx file changed."
+        },
+        "videoRequired": { "type": "boolean" },
+        "videoRequiredReason": { "type": "string", "minLength": 1 },
+        "fallbackApprovedByUser": {
+          "type": "boolean",
+          "description": "Must be true to render fallback QA when video was required."
+        },
+        "mode": { "type": "string", "enum": ["video", "fallback"] },
+        "artifactPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-root-relative QA artifact path, e.g. .reports/eng-123/eng-123-qa.webm. The renderer rewrites it to an HTML-relative link for the generated report."
+        },
+        "caption": { "type": "string", "minLength": 1 },
+        "scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "status", "evidence"],
+        "properties": {
+          "criterion": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["satisfied", "blocked", "not_applicable"] },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "adversarialReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["iterations", "critical", "major", "minor", "nitpick", "findings"],
+      "properties": {
+        "iterations": { "type": "integer", "minimum": 0 },
+        "critical": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Remaining critical findings. Must be 0."
+        },
+        "major": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Remaining major findings. Must be 0."
+        },
+        "minor": { "type": "integer", "minimum": 0 },
+        "nitpick": { "type": "integer", "minimum": 0 },
+        "findings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "decisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "items"],
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-root-relative decisions artifact path, e.g. .reports/eng-123/DECISIONS.md."
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "recordedAt",
+              "title",
+              "context",
+              "optionsConsidered",
+              "chosenPath",
+              "rationale",
+              "tradeoffs",
+              "evidence",
+              "affectedFiles"
+            ],
+            "properties": {
+              "recordedAt": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "context": { "type": "string", "minLength": 1 },
+              "optionsConsidered": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "chosenPath": { "type": "string", "minLength": 1 },
+              "rationale": { "type": "string", "minLength": 1 },
+              "tradeoffs": { "type": "string", "minLength": 1 },
+              "evidence": { "type": "string", "minLength": 1 },
+              "affectedFiles": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "lessons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filePath", "items"],
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-root-relative lessons artifact path. Must be LESSONS.md."
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "date",
+              "source",
+              "area",
+              "lesson",
+              "appliesWhen",
+              "evidence",
+              "nextTime",
+              "files"
+            ],
+            "properties": {
+              "date": { "type": "string", "minLength": 1 },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Issue key or session label that produced the lesson, e.g. ENG-123."
+              },
+              "area": { "type": "string", "minLength": 1 },
+              "lesson": { "type": "string", "minLength": 1 },
+              "appliesWhen": { "type": "string", "minLength": 1 },
+              "evidence": { "type": "string", "minLength": 1 },
+              "nextTime": { "type": "string", "minLength": 1 },
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "rollout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "steps"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["when", "label", "details"],
+            "properties": {
+              "when": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "details": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha", "shortSha", "message"],
+      "properties": {
+        "sha": { "type": "string", "minLength": 1 },
+        "shortSha": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
